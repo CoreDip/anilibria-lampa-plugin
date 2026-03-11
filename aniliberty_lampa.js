@@ -1,18 +1,24 @@
 (function () {
     'use strict';
 
-    // ─── Метадані плагіну (Lampa читає це для відображення назви) ────────────
-    var manifest = {
-        type:        'other',
-        version:     '1.0.0',
-        name:        'AniLiberty',
-        description: 'Аніме клієнт AniLibria',
-        component:   'aniliberty'
-    };
+    // Захист від подвійного завантаження
+    if (window.plugin_aniliberty_ready) return;
+    window.plugin_aniliberty_ready = true;
 
-    var SITE_URL = 'https://aniliberty.netlify.app/';
+    var PLUGIN_NAME = 'AniLiberty';
+    var SITE_URL    = 'https://aniliberty.netlify.app/';
 
-    // ─── CSS ─────────────────────────────────────────────────────────────────
+    // ─── Іконка (SVG play-кнопка) ─────────────────────────────────────────────
+    function getIcon() {
+        var svg = document.createElement('div');
+        svg.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">'
+            + '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 '
+            + '10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>'
+            + '</svg>';
+        return $(svg);
+    }
+
+    // ─── CSS ──────────────────────────────────────────────────────────────────
     var style = document.createElement('style');
     style.textContent = [
         '.alib-wrap{position:fixed;inset:0;z-index:9999;background:#0d0d0d;display:flex;align-items:center;justify-content:center;}',
@@ -26,7 +32,7 @@
     ].join('');
     document.head.appendChild(style);
 
-    // ─── Шаблон ──────────────────────────────────────────────────────────────
+    // ─── Шаблон ───────────────────────────────────────────────────────────────
     Lampa.Template.add('aniliberty_view',
         '<div class="alib-wrap">' +
             '<div class="alib-loader" id="alib-loader">' +
@@ -37,7 +43,7 @@
         '</div>'
     );
 
-    // ─── Компонент ───────────────────────────────────────────────────────────
+    // ─── Компонент ────────────────────────────────────────────────────────────
     function AniLibertyComponent(object) {
         var html;
 
@@ -70,40 +76,15 @@
         this.render = function () { return html; };
     }
 
-    // ─── Реєстрація компонента ────────────────────────────────────────────────
     Lampa.Component.add('aniliberty', AniLibertyComponent);
 
-    // ─── Реєстрація маніфесту ─────────────────────────────────────────────────
-    if (Lampa.Manifest) {
-        Lampa.Manifest.plugins = Lampa.Manifest.plugins || {};
-        Lampa.Manifest.plugins['aniliberty'] = manifest;
-    }
-
-    // ─── Додавання пункту в меню ─────────────────────────────────────────────
-    function addMenuItem() {
-        if ($('.menu__item[data-component="aniliberty"]').length) return;
-
-        var item = $(
-            '<li class="menu__item selector" data-component="aniliberty">' +
-                '<div class="menu__ico">' +
-                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">' +
-                        '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>' +
-                    '</svg>' +
-                '</div>' +
-                '<div class="menu__text">AniLiberty</div>' +
-            '</li>'
-        );
-
-        var menuList = $('.menu .menu__list').first();
-        if (menuList.length) {
-            menuList.append(item);
-        }
-
-        // Обробка натискання
-        item.on('hover:enter click', function () {
+    // ─── Ініціалізація ─────────────────────────────────────────────────────────
+    function init() {
+        // Саме так як у hikka.js — Lampa.Menu.addButton(icon, title, callback)
+        Lampa.Menu.addButton(getIcon(), PLUGIN_NAME, function () {
             Lampa.Activity.push({
-                url:       SITE_URL,
-                title:     'AniLiberty',
+                url:       '',
+                title:     PLUGIN_NAME,
                 component: 'aniliberty',
                 page:      1
             });
@@ -111,13 +92,12 @@
     }
 
     // ─── Запуск ───────────────────────────────────────────────────────────────
-    Lampa.Listener.follow('app', function (e) {
-        if (e.type === 'ready') {
-            setTimeout(addMenuItem, 300);
-        }
-    });
-
-    // Запасний варіант якщо 'ready' вже пройшов
-    setTimeout(addMenuItem, 1500);
+    if (window.appready) {
+        init();
+    } else {
+        Lampa.Listener.follow('app', function (e) {
+            if (e.type === 'ready') init();
+        });
+    }
 
 })();
